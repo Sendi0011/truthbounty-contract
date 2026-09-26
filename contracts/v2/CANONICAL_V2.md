@@ -28,6 +28,29 @@ All contracts in this directory:
 |----------|--------|---------|------------|
 | **EvidenceRegistry.sol** | ✅ CANONICAL | Content-addressed evidence commitment registry | `IV2Module`, `IEvidence` |
 | **StakeVault.sol** | ✅ CANONICAL | Multi-asset stake custody and settlement | `IV2Module`, `IStakeCustody` |
+| **EventCompletenessAnchor.sol** | ✅ CANONICAL | Read-only publication of the event-completeness catalogue (V2-SC-132) | `IV2Module`, `IEventCompleteness` |
+
+### Event Completeness Anchor
+
+`EventCompletenessAnchor` is immutable after construction and carries no
+settlement, treasury, or configuration authority. It publishes the 30-cell
+catalogue that lets a consumer rebuild every authoritative read cell of the
+canonical modules from the ordered log stream alone.
+
+- `eventCompleteness()` returns the pinned record: chain id, enumeration version, module/cell/binding totals, the catalogue root, and the four semantic promises.
+- `moduleCoverage(i)` and `cellCoverage(i)` return per-module and per-cell coverage, including `closingEvents`, `restatementCount`, `restatementSetRoot`, `coverage`, and `reductionRuleId`.
+- `cellSources(i)` returns those per-cell bindings with the restatement events expanded, so a consumer can verify one cell without walking the catalogue.
+- `EventCompletenessPublished` is emitted once, at deploy time, with the record, chain id, deployer, and block.
+
+`V2EventCompleteness` is the single source of truth for the catalogue, and
+`deployments/config/event-completeness.json` is its off-chain mirror. Published
+totals: 8 modules, 30 cells, 57 closing bindings, 10 restatements, 8 reduction
+rules, catalogue root
+`0xdd8947a68c9ca89956a3dd37245426b8e8f84cd0c23668d6c5c7d4b78d18138c`.
+
+The consumer-facing rules — closing events versus restatements, the eight
+reduction rules, the root formulas, and the projection algorithm — are normative
+in [`docs/v2/event-completeness-projection-replay.md`](../../docs/v2/event-completeness-projection-replay.md).
 
 ### Interfaces (v2/interfaces/)
 
@@ -35,6 +58,7 @@ All interfaces in this directory are **CANONICAL V2** and define the protocol's 
 
 - `IV2Module.sol` - Base interface for all V2 modules
 - `IV2Types.sol` - Common V2 type definitions
+- `IEventCompleteness.sol` - Event-completeness record and per-cell coverage
 - `IEvidence.sol` - Evidence submission and retrieval
 - `IStakeCustody.sol` - Stake custody and settlement
 - `IClaims.sol` - Claim registry (implementation pending)
@@ -51,6 +75,7 @@ All interfaces in this directory are **CANONICAL V2** and define the protocol's 
 |---------|--------|---------|
 | **V2Errors.sol** | ✅ CANONICAL | V2-specific error definitions |
 | **V2Lifecycle.sol** | ✅ CANONICAL | Lifecycle state management utilities |
+| **V2EventCompleteness.sol** | ✅ CANONICAL | Event-completeness catalogue, reduction rules, roots, and the projection fold (V2-SC-132) |
 
 ---
 
@@ -113,6 +138,10 @@ test/EvidenceRegistry.test.ts    # Evidence registry unit tests
 test/StakeVault.test.ts          # Stake vault unit tests
 test/StakeVault.t.sol            # Stake vault Foundry tests
 test/V2Interfaces.test.ts        # Interface conformance tests
+test/v2/EventCompleteness.t.sol        # Catalogue completeness, roots, and anchor (V2-SC-132)
+test/v2/EventCompletenessManifest.t.sol # Manifest drift against the library (V2-SC-132)
+test/v2/ProjectionReplay.t.sol          # Log-only replay of every read cell (V2-SC-132)
+test/fuzz/ProjectionReplayFuzz.t.sol     # Replay, R0/R6 reduction, and fold properties (V2-SC-132)
 ```
 
 ### Running V2 Tests

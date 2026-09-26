@@ -1,23 +1,34 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import { IERC165 } from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 
-import {IStakeCustody} from "./interfaces/IStakeCustody.sol";
-import {IModuleRegistry} from "./interfaces/IModuleRegistry.sol";
-import {IV2Module} from "./interfaces/IV2Module.sol";
-import {IV2Types} from "./interfaces/IV2Types.sol";
-import {V2Errors} from "./libraries/V2Errors.sol";
+import { IStakeCustody } from "./interfaces/IStakeCustody.sol";
+import { IModuleRegistry } from "./interfaces/IModuleRegistry.sol";
+import { IV2Module } from "./interfaces/IV2Module.sol";
+import { IV2Types } from "./interfaces/IV2Types.sol";
+import { V2Errors } from "./libraries/V2Errors.sol";
 
 /// @title StakeVault
 /// @notice Canonical V2 custody module with typed locks, exact-balance accounting, and pull-based withdrawals.
 /// @dev Every token in custody belongs to a named bucket: claimable, locked (by category), or protocol allocation.
 ///      Only registered canonical modules may mutate locks. User withdrawals cannot affect another account or claim.
+///
+///      ## Event completeness (V2-SC-132)
+///
+///      Every authoritative read cell is closed by at least one canonical event,
+///      so a clean indexer reconstructs this module's read state by replaying the
+///      ordered log stream alone. Cells, closing events, and the derivation rules
+///      for aggregate cells are enumerated in
+///      `V2EventCompleteness.catalogue()` and published on-chain by
+///      `EventCompletenessAnchor`. No emission carries settlement, treasury, or
+///      configuration authority: events are read-only evidence of state that the
+///      contracts themselves already enforce.
 contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
     using SafeERC20 for IERC20;
 
@@ -66,6 +77,57 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
     event VaultWithdrawn(address indexed asset, address indexed account, uint256 amount);
     event ProtocolAllocationIncreased(address indexed asset, uint256 amount, bytes32 indexed reason);
 
+    // -------------------------------------------------------------------------
+    // V2-SC-132 event-completeness surface
+    //
+    // The four events below close the authoritative read cells that no
+    // pre-existing emission carried. Each is emitted at the exact point of the
+    // storage mutation it describes, in the same transaction and in canonical
+    // log order, so a clean indexer that replays the ordered stream reconstructs
+    // `supportedAssets`, `lockMutators`, per-cell locked principal after a
+    // slash, and the protocol-allocation debit leg of a reward credit without
+    // reading storage. No new authority, role, or settlement path is introduced.
+    // -------------------------------------------------------------------------
+
+    /// @notice Version tag carried by every canonical V2-SC-132 vault event.
+    uint16 public constant EVENT_SCHEMA_VERSION = 1;
+
+    /// @notice Emitted when an asset is enabled or disabled for custody.
+    /// @dev Also emitted once at construction for the primary staking asset, so
+    ///      a replay that starts at the deployment block never has to infer the
+    ///      genesis supported-asset set.
+    event SupportedAssetUpdated(
+        address indexed asset, bool enabled, address indexed actor, uint64 timestamp, uint16 version
+    );
+
+    /// @notice Emitted when an address is granted or revoked lock-mutation authority.
+    event LockMutatorUpdated(
+        address indexed module, bool enabled, address indexed actor, uint64 timestamp, uint16 version
+    );
+
+    /// @notice Emitted when locked principal is moved into the protocol allocation.
+    /// @dev Carries the full lock-cell coordinates. `ProtocolAllocationIncreased`
+    ///      alone is not reconstructible: it names neither the debited lock cell
+    ///      nor the actor that caused the slash.
+    event VaultSlashed(
+        address indexed asset,
+        address indexed account,
+        uint256 indexed claimId,
+        uint256 round,
+        IV2Types.LockCategory category,
+        uint256 amount,
+        bytes32 reason,
+        uint64 timestamp,
+        uint16 version
+    );
+
+    /// @notice Emitted when protocol allocation is debited to fund a reward credit.
+    /// @dev Closes the allocation leg of `_creditReward`, which previously
+    ///      mutated `_protocolAllocation` with no emission of its own.
+    event ProtocolAllocationConsumed(
+        address indexed asset, address indexed beneficiary, uint256 amount, uint64 timestamp, uint16 version
+    );
+
     /// @param registry Canonical module registry used to authorize lock mutations.
     /// @param token Primary staking asset for the `IStakeCustody` surface.
     /// @param admin Governance or deployment authority.
@@ -79,18 +141,14 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
         _grantRole(ADMIN_ROLE, admin);
 
         supportedAssets[token] = true;
+        emit SupportedAssetUpdated(token, true, admin, uint64(block.timestamp), EVENT_SCHEMA_VERSION);
     }
 
     function protocolVersion() external pure override returns (uint16 major, uint16 minor) {
         return (2, 0);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        override(AccessControl, ERC165, IERC165)
-        returns (bool)
-    {
+    function supportsInterface(bytes4 interfaceId) public view override(AccessControl, ERC165, IERC165) returns (bool) {
         return interfaceId == type(IStakeCustody).interfaceId || interfaceId == type(IV2Module).interfaceId
             || super.supportsInterface(interfaceId);
     }
@@ -119,7 +177,11 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
     }
 
     /// @inheritdoc IStakeCustody
-    function slashStake(uint256 claimId, address account, uint256 amount, bytes32 reason) external override nonReentrant {
+    function slashStake(uint256 claimId, address account, uint256 amount, bytes32 reason)
+        external
+        override
+        nonReentrant
+    {
         _onlyAuthorizedMutator();
         _assertSettlementNotFinalized(claimId, 0);
         address asset = address(stakingToken);
@@ -158,6 +220,7 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
         _onlyAuthorizedMutator();
         _assertSettlementNotFinalized(claimId, round);
         _lock(asset, account, claimId, round, category, amount);
+        _creditStakeCell(asset, account, claimId, category, amount);
     }
 
     /// @notice Unlocks a typed lock cell back to claimable balance. Authorized modules only.
@@ -172,6 +235,7 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
         _onlyAuthorizedMutator();
         _assertSettlementNotFinalized(claimId, round);
         _unlock(asset, account, claimId, round, category, amount);
+        _debitStakeCell(asset, account, claimId, category, amount);
     }
 
     /// @notice Moves locked principal into protocol allocation. Authorized modules only.
@@ -208,26 +272,28 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
 
         if (principalAmount > 0) {
             _unlock(asset, account, claimId, round, IV2Types.LockCategory.VERIFIER_PRINCIPAL, principalAmount);
+            _debitStakeCell(asset, account, claimId, IV2Types.LockCategory.VERIFIER_PRINCIPAL, principalAmount);
         }
         if (rewardAmount > 0) {
             _creditReward(asset, account, rewardAmount);
         }
-        emit VaultSettledConclusive(asset, account, claimId, round, principalAmount, rewardAmount, uint64(block.timestamp), 1);
+        emit VaultSettledConclusive(
+            asset, account, claimId, round, principalAmount, rewardAmount, uint64(block.timestamp), 1
+        );
     }
 
     /// @inheritdoc IStakeCustody
-    function refundInconclusive(
-        address asset,
-        address account,
-        uint256 claimId,
-        uint256 round,
-        uint256 amount
-    ) external override nonReentrant {
+    function refundInconclusive(address asset, address account, uint256 claimId, uint256 round, uint256 amount)
+        external
+        override
+        nonReentrant
+    {
         _onlySettlementModule();
         _assertSettlementNotFinalized(claimId, round);
         _settlementOutcome[claimId][round] = IV2Types.SettlementOutcome.REFUNDED;
 
         _unlock(asset, account, claimId, round, IV2Types.LockCategory.VERIFIER_PRINCIPAL, amount);
+        _debitStakeCell(asset, account, claimId, IV2Types.LockCategory.VERIFIER_PRINCIPAL, amount);
         emit VaultRefundedInconclusive(asset, account, claimId, round, amount, uint64(block.timestamp), 1);
     }
 
@@ -266,23 +332,27 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
     }
 
     /// @inheritdoc IStakeCustody
-    function finalUnlock(
-        address asset,
-        address account,
-        uint256 claimId,
-        uint256 round,
-        uint256 amount
-    ) external override nonReentrant {
+    function finalUnlock(address asset, address account, uint256 claimId, uint256 round, uint256 amount)
+        external
+        override
+        nonReentrant
+    {
         _onlySettlementModule();
         _assertSettlementNotFinalized(claimId, round);
         _settlementOutcome[claimId][round] = IV2Types.SettlementOutcome.UNLOCKED;
 
         _unlock(asset, account, claimId, round, IV2Types.LockCategory.VERIFIER_PRINCIPAL, amount);
+        _debitStakeCell(asset, account, claimId, IV2Types.LockCategory.VERIFIER_PRINCIPAL, amount);
         emit VaultFinalUnlocked(asset, account, claimId, round, amount, uint64(block.timestamp), 1);
     }
 
     /// @inheritdoc IStakeCustody
-    function settlementOutcome(uint256 claimId, uint256 round) external view override returns (IV2Types.SettlementOutcome) {
+    function settlementOutcome(uint256 claimId, uint256 round)
+        external
+        view
+        override
+        returns (IV2Types.SettlementOutcome)
+    {
         return _settlementOutcome[claimId][round];
     }
 
@@ -346,12 +416,14 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
     function setSupportedAsset(address asset, bool enabled) external onlyRole(ADMIN_ROLE) {
         if (asset == address(0)) revert V2Errors.ZeroAddress();
         supportedAssets[asset] = enabled;
+        emit SupportedAssetUpdated(asset, enabled, msg.sender, uint64(block.timestamp), EVENT_SCHEMA_VERSION);
     }
 
     /// @notice Grants or revokes explicit lock-mutation authority (governance override).
     function setLockMutator(address module, bool enabled) external onlyRole(ADMIN_ROLE) {
         if (module == address(0)) revert V2Errors.ZeroAddress();
         lockMutators[module] = enabled;
+        emit LockMutatorUpdated(module, enabled, msg.sender, uint64(block.timestamp), EVENT_SCHEMA_VERSION);
     }
 
     /// @notice Returns whether an address may mutate locks.
@@ -461,7 +533,46 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
         }
 
         _assertReconciliation(asset);
+        emit VaultSlashed(
+            asset, account, claimId, round, category, amount, reason, uint64(block.timestamp), EVENT_SCHEMA_VERSION
+        );
         emit ProtocolAllocationIncreased(asset, amount, reason);
+    }
+
+    /// @notice Credits the round-less verifier-stake cell and publishes the delta.
+    /// @dev `IStakeCustody.staked(claimId, account)` is authoritative but carries
+    ///      no round, so it is closed by the family-6 surface rather than by the
+    ///      per-round lock family. `_lock` writes that cell for any staking-token
+    ///      `VERIFIER_PRINCIPAL` lock, including the ones reached through the
+    ///      generic `lock` hook, so the generic hook must publish the delta too:
+    ///      otherwise a log-only indexer over-reports stake for a stake deposit
+    ///      it never saw (V2-SC-132).
+    function _creditStakeCell(
+        address asset,
+        address account,
+        uint256 claimId,
+        IV2Types.LockCategory category,
+        uint256 amount
+    ) internal {
+        if (amount == 0 || category != IV2Types.LockCategory.VERIFIER_PRINCIPAL || asset != address(stakingToken)) return;
+        emit StakeDeposited(account, claimId, amount, uint64(block.timestamp), EVENT_SCHEMA_VERSION);
+    }
+
+    /// @notice Debits the round-less verifier-stake cell and publishes the delta.
+    /// @dev The debit counterpart of `_creditStakeCell`. Every path that unlocks
+    ///      staking-token principal outside the family-6 surface — the generic
+    ///      `unlock` hook, conclusive settlement, an inconclusive refund, and a
+    ///      final unlock — must emit `StakeReleased`, so the stake cell stays
+    ///      closed when settlement returns principal to the claimable balance.
+    function _debitStakeCell(
+        address asset,
+        address account,
+        uint256 claimId,
+        IV2Types.LockCategory category,
+        uint256 amount
+    ) internal {
+        if (amount == 0 || category != IV2Types.LockCategory.VERIFIER_PRINCIPAL || asset != address(stakingToken)) return;
+        emit StakeReleased(account, claimId, amount, uint64(block.timestamp), EVENT_SCHEMA_VERSION);
     }
 
     function _withdraw(address account, address asset, uint256 amount) internal {
@@ -487,13 +598,11 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
         if (received != amount) revert V2Errors.TransferAmountMismatch(amount, received);
     }
 
-    function _lockKey(
-        address asset,
-        address account,
-        uint256 claimId,
-        uint256 round,
-        IV2Types.LockCategory category
-    ) internal pure returns (bytes32) {
+    function _lockKey(address asset, address account, uint256 claimId, uint256 round, IV2Types.LockCategory category)
+        internal
+        pure
+        returns (bytes32)
+    {
         return keccak256(abi.encode(asset, account, claimId, round, category));
     }
 
@@ -530,6 +639,7 @@ contract StakeVault is ERC165, AccessControl, ReentrancyGuard, IStakeCustody {
         _assetTotalClaimable[asset] += amount;
 
         _assertReconciliation(asset);
+        emit ProtocolAllocationConsumed(asset, account, amount, uint64(block.timestamp), EVENT_SCHEMA_VERSION);
     }
 
     /// @notice Moves a VERIFIER_PRINCIPAL lock from one round to another without changing custody totals.

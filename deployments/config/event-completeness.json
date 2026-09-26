@@ -1,0 +1,757 @@
+{
+  "manifestVersion": 1,
+  "issue": "V2-SC-132",
+  "specification": "TruthBounty Canonical V2 Event Completeness for Projection Replay (docs/v2/event-completeness-projection-replay.md)",
+  "chainId": 11155420,
+  "environment": "testnet",
+  "catalogue": "contracts/v2/libraries/V2EventCompleteness.sol",
+  "cellDomain": "0x4f62b94915b10b8d93b9383b644a52a452d96836d17d6e4e46df913917d0b100",
+  "completeness": {
+    "completenessVersion": 1,
+    "moduleCount": 8,
+    "cellCount": 30,
+    "bindingCount": 57,
+    "restatementCount": 10,
+    "catalogueRoot": "0xdd8947a68c9ca89956a3dd37245426b8e8f84cd0c23668d6c5c7d4b78d18138c",
+    "everyMutationEmits": true,
+    "mutationsAreTerminal": true,
+    "orderIsTotal": true,
+    "projectionIsDeterministic": true
+  },
+  "coverageVocabulary": {
+    "Direct": 0,
+    "Aggregate": 1,
+    "Derived": 2
+  },
+  "ordering": {
+    "totalOrder": [
+      "blockNumber",
+      "transactionIndex",
+      "logIndex"
+    ],
+    "eventIdentity": "keccak256(abi.encode(chainId, contractAddress, blockNumber, blockHash, transactionHash, logIndex))",
+    "eventIdentityLibrary": "V2Guarantees.eventKey (V2-SC-134)",
+    "projectionFold": "V2EventCompleteness.replayFold(previousFold, eventKey), seeded with V2EventCompleteness.EMPTY_FOLD",
+    "emptyFold": "0x05e832d6b293d0608237b105d14f8d3a82ff27c8df477f1d3773b32ff02cb69d",
+    "reorgHandling": "declared separately by ConsumerGuaranteesAnchor (V2-SC-134)"
+  },
+  "catalogueRootFormula": "fold over cells: keccak256(abi.encode(previous, cellId, moduleId, coverage, reductionRuleId, closingSetRoot, restatementSetRoot)), seeded with cellDomain",
+  "setRootFormula": "keccak256(abi.encode(bytes32[] set)); bytes32(0) for an empty set",
+  "reductionRules": [
+    {
+      "id": "0x625a91dda4cfbfd3f65063e146d5cca3afabcbb2562c31ee91f3a3c90e41535e",
+      "name": "R0:sum-over-per-key-cells"
+    },
+    {
+      "id": "0x45e6bcb80cb7007f96ec4c387c7924764d90188f27f64d7f591baa45b0a281eb",
+      "name": "R1:contributor-nonce-monotonic"
+    },
+    {
+      "id": "0x0176ef2fb5dc90917555b493b6efda34734fc1757d93b6e43fbfc1b9e4357be9",
+      "name": "R2:commitment-dedupe"
+    },
+    {
+      "id": "0x06b7dad8d7db251779ebafc5bba960ce59beb94289338a47d93be06ece64d0d3",
+      "name": "R3:settlement-outcome-from-event"
+    },
+    {
+      "id": "0x4957b734edba97bb35b49bf131b1c372d6bd67a4e8c16346c5f114ad7a4d5513",
+      "name": "R4:finalized-on-rewards-finalized"
+    },
+    {
+      "id": "0xcf01d4eba81eee2321d70eb9143680d383ae868dfd1f11d29fa4a7afdf21e89e",
+      "name": "R5:rewire-timestamp-from-block"
+    },
+    {
+      "id": "0xbcba9b8c69d77073632ccaea60568c5f3495efd509f3642982e26546ac68755d",
+      "name": "R6:stake-family-canonical-vault-locks-restate"
+    },
+    {
+      "id": "0x8d96dfa2520988ba26758a633e49b0076c2a3a18e47cd9381102a4290c96fa85",
+      "name": "R7:evidence-status-defaults-submitted-at-commit"
+    }
+  ],
+  "modules": [
+    {
+      "index": 0,
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "cellCount": 10,
+      "everyMutationEmits": true,
+      "isImmutable": false
+    },
+    {
+      "index": 1,
+      "module": "EVIDENCE",
+      "moduleId": "0x7477535acdef313b25d16b4871e7023fac62af68d6312bbdbdb96203a4710dc3",
+      "cellCount": 6,
+      "everyMutationEmits": true,
+      "isImmutable": false
+    },
+    {
+      "index": 2,
+      "module": "FINAL_REWARD_ALLOCATOR",
+      "moduleId": "0xc38c186e3ec7d0a2a7cb5fd99e58482400a66aea0f4764ef2909737aaf4406f3",
+      "cellCount": 7,
+      "everyMutationEmits": true,
+      "isImmutable": false
+    },
+    {
+      "index": 3,
+      "module": "AGGREGATION",
+      "moduleId": "0x9a0e9d6859a1d35431fd951b6fcc24eb74c07a6ceece84cf977837485693c375",
+      "cellCount": 1,
+      "everyMutationEmits": true,
+      "isImmutable": false
+    },
+    {
+      "index": 4,
+      "module": "SIGNATURE_NONCES",
+      "moduleId": "0x7db146fe302f6cbd138e299c36d570a0f017ddf70ba1340696552b5cbd63426c",
+      "cellCount": 1,
+      "everyMutationEmits": true,
+      "isImmutable": false
+    },
+    {
+      "index": 5,
+      "module": "EMERGENCY_GATEKEEPER",
+      "moduleId": "0x6256cf2093ab860a9104297e54a55cd5447a5eac626843d9b55348029825deea",
+      "cellCount": 5,
+      "everyMutationEmits": true,
+      "isImmutable": false
+    },
+    {
+      "index": 6,
+      "module": "CONSUMER_GUARANTEES",
+      "moduleId": "0xb063744967f57ab06da84415fbde4bcefa87dfbe4ce6d8f577e22d9610a677ad",
+      "cellCount": 0,
+      "everyMutationEmits": true,
+      "isImmutable": true
+    },
+    {
+      "index": 7,
+      "module": "EVENT_COMPLETENESS",
+      "moduleId": "0x656449567aa86203c8a9311326c98acb0c154efb9e802339b9bc232e5e037acc",
+      "cellCount": 0,
+      "everyMutationEmits": true,
+      "isImmutable": true
+    }
+  ],
+  "cells": [
+    {
+      "index": 0,
+      "cellId": "0x250611ca157ffd88b891d01e3f869c5337ee1615a6aa271b5c92fc5e9b2e0074",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x13ccd90e7cf57a318d1257d89ed6a4cf880f40f50d56ced00ea487b8a62a00e4",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "SupportedAssetUpdated(address,bool,address,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "supportedAssets(address)"
+    },
+    {
+      "index": 1,
+      "cellId": "0xc556f31ec8698dcb41c874be29677971760fa808ea30698b6446416882a4b78a",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x1904585a3d7598255415d9c564a638c02e4d6372258757a216057db4c575f892",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "LockMutatorUpdated(address,bool,address,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "lockMutators(address)"
+    },
+    {
+      "index": 2,
+      "cellId": "0x89f69b6d65ef2543acc5fffcc9b15bc5cd7bc8afbfb3169312104880c26e3e28",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x7412a96c71fa5b7bed55154673c197e86f16b2498ae00b685d407706e3846b7c",
+      "restatementSetRoot": "0xc7a667ac2d056548b30754c5be49454ee8219c7dbbba643783d4c52fe0776245",
+      "closingEvents": [
+        "VaultDeposited(address,address,uint256)",
+        "VaultLocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultUnlocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultWithdrawn(address,address,uint256)",
+        "ProtocolAllocationConsumed(address,address,uint256,uint64,uint16)"
+      ],
+      "restatements": [
+        "VaultSettledConclusive(address,address,uint256,uint256,uint256,uint256,uint64,uint16)"
+      ],
+      "readSurface": "claimableBalance(address,address)"
+    },
+    {
+      "index": 3,
+      "cellId": "0x00d7ed12aa4c758ce8c87a82831d3933769e94be811ad9f9d401cf04d72e75b1",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x8033872978228479e9a30d106e959cbcb7d2b5b6fa36d34c6cf95d2a1b267ed1",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "VaultLocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultUnlocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultSlashed(address,address,uint256,uint256,uint8,uint256,bytes32,uint64,uint16)",
+        "VaultCarriedForward(address,address,uint256,uint256,uint256,uint256,uint64,uint16)",
+        "VaultRolledOver(address,address,uint256,uint256,uint256,uint256,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "lockedPrincipal(address,address,uint256,uint256,uint8)"
+    },
+    {
+      "index": 4,
+      "cellId": "0x84a02337851ea243e0d852873fef76ef0a0e61cbc4109b445673b0344d8b93db",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x98f118f1aef31a5f3dfb07a52022c1b2fb43f32b16043a5f9f500d2ff8a391ef",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "VaultDeposited(address,address,uint256)",
+        "VaultWithdrawn(address,address,uint256)"
+      ],
+      "restatements": [],
+      "readSurface": "totalCustody(address)"
+    },
+    {
+      "index": 5,
+      "cellId": "0x2e9797648d4d29c6efe1bf0da3a411f23bc59a9500427313c4655c04c6ac346b",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0xb10da28b61a22541155edb02eae41cadbb4bf6306b5c22de971eb53d574e743a",
+      "restatementSetRoot": "0x711287cec12ce87f5e451897dbe5488a179068d691920d19cec6271474a8e6e4",
+      "closingEvents": [
+        "ProtocolAllocationIncreased(address,uint256,bytes32)",
+        "ProtocolAllocationConsumed(address,address,uint256,uint64,uint16)"
+      ],
+      "restatements": [
+        "VaultSlashed(address,address,uint256,uint256,uint8,uint256,bytes32,uint64,uint16)"
+      ],
+      "readSurface": "protocolAllocation(address)"
+    },
+    {
+      "index": 6,
+      "cellId": "0x1a19f7c2124986a805862bdd00b994ed2bf13fca9c2df2fbf037dae5a3a364fd",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Aggregate",
+      "coverageOrdinal": 1,
+      "reductionRule": "R0:sum-over-per-key-cells",
+      "reductionRuleId": "0x625a91dda4cfbfd3f65063e146d5cca3afabcbb2562c31ee91f3a3c90e41535e",
+      "closingSetRoot": "0x7412a96c71fa5b7bed55154673c197e86f16b2498ae00b685d407706e3846b7c",
+      "restatementSetRoot": "0xc7a667ac2d056548b30754c5be49454ee8219c7dbbba643783d4c52fe0776245",
+      "closingEvents": [
+        "VaultDeposited(address,address,uint256)",
+        "VaultLocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultUnlocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultWithdrawn(address,address,uint256)",
+        "ProtocolAllocationConsumed(address,address,uint256,uint64,uint16)"
+      ],
+      "restatements": [
+        "VaultSettledConclusive(address,address,uint256,uint256,uint256,uint256,uint64,uint16)"
+      ],
+      "readSurface": "internal aggregate _assetTotalClaimable; observable via conservation(address)"
+    },
+    {
+      "index": 7,
+      "cellId": "0x15c64f9dbdc2d9981968ef8e2809c4b7b916f04f9fec52e801fed5f4cb8e2bdf",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Aggregate",
+      "coverageOrdinal": 1,
+      "reductionRule": "R0:sum-over-per-key-cells",
+      "reductionRuleId": "0x625a91dda4cfbfd3f65063e146d5cca3afabcbb2562c31ee91f3a3c90e41535e",
+      "closingSetRoot": "0x674950368457f6c76c83e940cd42dc9a6d682e43dae0083892d96732c3a89472",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "VaultLocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultUnlocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultSlashed(address,address,uint256,uint256,uint8,uint256,bytes32,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "internal aggregate _assetTotalLocked; observable via conservation(address)"
+    },
+    {
+      "index": 8,
+      "cellId": "0x219968593f55d24d604e65106105bbc5925b1bd5a3db7c4225db3a45093b9431",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Aggregate",
+      "coverageOrdinal": 1,
+      "reductionRule": "R6:stake-family-canonical-vault-locks-restate",
+      "reductionRuleId": "0xbcba9b8c69d77073632ccaea60568c5f3495efd509f3642982e26546ac68755d",
+      "closingSetRoot": "0x95c2bb1be456dbd9e80404caa0941cba2521952e65806a7dad0b8ad034ae8255",
+      "restatementSetRoot": "0x674950368457f6c76c83e940cd42dc9a6d682e43dae0083892d96732c3a89472",
+      "closingEvents": [
+        "StakeDeposited(address,uint256,uint256,uint64,uint16)",
+        "StakeReleased(address,uint256,uint256,uint64,uint16)",
+        "StakeSlashed(address,uint256,uint256,bytes32,uint64,uint16)"
+      ],
+      "restatements": [
+        "VaultLocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultUnlocked(address,address,uint256,uint256,uint8,uint256)",
+        "VaultSlashed(address,address,uint256,uint256,uint8,uint256,bytes32,uint64,uint16)"
+      ],
+      "readSurface": "staked(uint256,address) and totalStaked(uint256)"
+    },
+    {
+      "index": 9,
+      "cellId": "0x6ffa705405d960151742ce41c453b490cdbe9047f6d9b56606547b72add091dd",
+      "module": "STAKE_CUSTODY",
+      "moduleId": "0xc975f1b1e35247a199f025de284f05b9d76d3958b4a7ad9a32ff8566392a9598",
+      "coverage": "Derived",
+      "coverageOrdinal": 2,
+      "reductionRule": "R3:settlement-outcome-from-event",
+      "reductionRuleId": "0x06b7dad8d7db251779ebafc5bba960ce59beb94289338a47d93be06ece64d0d3",
+      "closingSetRoot": "0xd3fe727484da9890d37f58d05f3ca0a876c865710aeb953570d615250c3371ee",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "VaultSettledConclusive(address,address,uint256,uint256,uint256,uint256,uint64,uint16)",
+        "VaultRefundedInconclusive(address,address,uint256,uint256,uint256,uint64,uint16)",
+        "VaultCarriedForward(address,address,uint256,uint256,uint256,uint256,uint64,uint16)",
+        "VaultRolledOver(address,address,uint256,uint256,uint256,uint256,uint64,uint16)",
+        "VaultFinalUnlocked(address,address,uint256,uint256,uint256,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "settlementOutcome(uint256,uint256)"
+    },
+    {
+      "index": 10,
+      "cellId": "0xad96c98d2fb6f2f4a541ed7215f0355a1e7916bb88fa431291e2754737173082",
+      "module": "EVIDENCE",
+      "moduleId": "0x7477535acdef313b25d16b4871e7023fac62af68d6312bbdbdb96203a4710dc3",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0xce129c30f11f024a2a3891f4b1c79d1acd80a10fb528e255dfc018dc8d94f5d1",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "EvidenceCommitted(uint256,uint256,address,bytes32,bytes32,uint256,uint64,uint16)",
+        "EvidenceStatusChanged(uint256,uint8,uint8,address,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "getEvidenceCommitment(uint256) and getEvidence(uint256)"
+    },
+    {
+      "index": 11,
+      "cellId": "0xcf3789c07df6c8a15060e645d3f81a114190f24da031d9ee746a908122ae8a4c",
+      "module": "EVIDENCE",
+      "moduleId": "0x7477535acdef313b25d16b4871e7023fac62af68d6312bbdbdb96203a4710dc3",
+      "coverage": "Aggregate",
+      "coverageOrdinal": 1,
+      "reductionRule": "R0:sum-over-per-key-cells",
+      "reductionRuleId": "0x625a91dda4cfbfd3f65063e146d5cca3afabcbb2562c31ee91f3a3c90e41535e",
+      "closingSetRoot": "0xd6d838b31b9deff86ec15f85554a73494800320bcddf26d7328091f6fef6685c",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "EvidenceCommitted(uint256,uint256,address,bytes32,bytes32,uint256,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "claimEvidence(uint256,uint256,uint256) and evidenceCount(uint256)"
+    },
+    {
+      "index": 12,
+      "cellId": "0xc1f5aaa373146f9e0679ac4f8340b322a889a07115e77dd8288993c062452683",
+      "module": "EVIDENCE",
+      "moduleId": "0x7477535acdef313b25d16b4871e7023fac62af68d6312bbdbdb96203a4710dc3",
+      "coverage": "Derived",
+      "coverageOrdinal": 2,
+      "reductionRule": "R1:contributor-nonce-monotonic",
+      "reductionRuleId": "0x45e6bcb80cb7007f96ec4c387c7924764d90188f27f64d7f591baa45b0a281eb",
+      "closingSetRoot": "0xd6d838b31b9deff86ec15f85554a73494800320bcddf26d7328091f6fef6685c",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "EvidenceCommitted(uint256,uint256,address,bytes32,bytes32,uint256,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "nextContributorNonce(address)"
+    },
+    {
+      "index": 13,
+      "cellId": "0xc878b1840beee77e426e04fc54d78294e66f9cf8f0badd764a5b22dbb99e352c",
+      "module": "EVIDENCE",
+      "moduleId": "0x7477535acdef313b25d16b4871e7023fac62af68d6312bbdbdb96203a4710dc3",
+      "coverage": "Derived",
+      "coverageOrdinal": 2,
+      "reductionRule": "R2:commitment-dedupe",
+      "reductionRuleId": "0x0176ef2fb5dc90917555b493b6efda34734fc1757d93b6e43fbfc1b9e4357be9",
+      "closingSetRoot": "0xd6d838b31b9deff86ec15f85554a73494800320bcddf26d7328091f6fef6685c",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "EvidenceCommitted(uint256,uint256,address,bytes32,bytes32,uint256,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "internal dedupe set; observable via DuplicateEvidence(bytes32) revert"
+    },
+    {
+      "index": 14,
+      "cellId": "0xe69c11f055d8b05bef28e94291214776981d03606c3e0637cf67c945032853a3",
+      "module": "EVIDENCE",
+      "moduleId": "0x7477535acdef313b25d16b4871e7023fac62af68d6312bbdbdb96203a4710dc3",
+      "coverage": "Derived",
+      "coverageOrdinal": 2,
+      "reductionRule": "R7:evidence-status-defaults-submitted-at-commit",
+      "reductionRuleId": "0x8d96dfa2520988ba26758a633e49b0076c2a3a18e47cd9381102a4290c96fa85",
+      "closingSetRoot": "0xce129c30f11f024a2a3891f4b1c79d1acd80a10fb528e255dfc018dc8d94f5d1",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "EvidenceCommitted(uint256,uint256,address,bytes32,bytes32,uint256,uint64,uint16)",
+        "EvidenceStatusChanged(uint256,uint8,uint8,address,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "getEvidence(uint256).status; getEvidenceCommitment(uint256).status"
+    },
+    {
+      "index": 15,
+      "cellId": "0x2b19aa1d2211c490014dc303cb7f9fa24e03a3dced6129d004e1954e9467fccb",
+      "module": "EVIDENCE",
+      "moduleId": "0x7477535acdef313b25d16b4871e7023fac62af68d6312bbdbdb96203a4710dc3",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0xdb8957b5e16264892192382baeb459319844828a828121bc70e1107fa9ab7e6a",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "EmergencyPauseActivatedV1(address,bytes32,uint64,uint16)",
+        "EmergencyPauseRecoveredV1(address,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "paused()"
+    },
+    {
+      "index": 16,
+      "cellId": "0x8152571945d1fa39b087c3bbbeafc081801b3009f8f0e97d3f2257587eb82b6c",
+      "module": "FINAL_REWARD_ALLOCATOR",
+      "moduleId": "0xc38c186e3ec7d0a2a7cb5fd99e58482400a66aea0f4764ef2909737aaf4406f3",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x15c2da8d2811e4e5c021b010533a392ee0959c03eefda1ed7089cad4f2f1db5b",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "RewardPoolFunded(address,uint256,bytes32)"
+      ],
+      "restatements": [],
+      "readSurface": "funded(address)"
+    },
+    {
+      "index": 17,
+      "cellId": "0x66078aa4db02aedda825d33a02df9aee577eb246ab71ead80f4312af83171747",
+      "module": "FINAL_REWARD_ALLOCATOR",
+      "moduleId": "0xc38c186e3ec7d0a2a7cb5fd99e58482400a66aea0f4764ef2909737aaf4406f3",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x55f8e4d0e851438ab3da3cd85ff01cff567243146382abdf529aad4d846c7395",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "RewardsFinalized(bytes32,address,uint8,uint256)"
+      ],
+      "restatements": [],
+      "readSurface": "allocated(address)"
+    },
+    {
+      "index": 18,
+      "cellId": "0xdacec5e52f1a2b669676f96b57e2c5b023f08f0af855e8c3be88acda82322008",
+      "module": "FINAL_REWARD_ALLOCATOR",
+      "moduleId": "0xc38c186e3ec7d0a2a7cb5fd99e58482400a66aea0f4764ef2909737aaf4406f3",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x70624c9f2d6435f7675e435c4ac17a19d49f155b2ed3738e320e9ea250a2d6c3",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "RewardAllocated(bytes32,uint8,address,address,uint256)",
+        "RewardClaimed(address,address,uint256)"
+      ],
+      "restatements": [],
+      "readSurface": "claimable(address,address)"
+    },
+    {
+      "index": 19,
+      "cellId": "0xdfb7c50fe2fac77071e566f69a078049da2b5bd1097e9f7107feff017a53416d",
+      "module": "FINAL_REWARD_ALLOCATOR",
+      "moduleId": "0xc38c186e3ec7d0a2a7cb5fd99e58482400a66aea0f4764ef2909737aaf4406f3",
+      "coverage": "Aggregate",
+      "coverageOrdinal": 1,
+      "reductionRule": "R0:sum-over-per-key-cells",
+      "reductionRuleId": "0x625a91dda4cfbfd3f65063e146d5cca3afabcbb2562c31ee91f3a3c90e41535e",
+      "closingSetRoot": "0x15c2da8d2811e4e5c021b010533a392ee0959c03eefda1ed7089cad4f2f1db5b",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "RewardPoolFunded(address,uint256,bytes32)"
+      ],
+      "restatements": [],
+      "readSurface": "internal per-settlement aggregate _settlementFunded; observable via finalizeRewards(bytes32,address,uint8,uint256[])"
+    },
+    {
+      "index": 20,
+      "cellId": "0x816c984a4caa68058442385268f76339e7497eb751d6e55a44dc5d14cfc27ff0",
+      "module": "FINAL_REWARD_ALLOCATOR",
+      "moduleId": "0xc38c186e3ec7d0a2a7cb5fd99e58482400a66aea0f4764ef2909737aaf4406f3",
+      "coverage": "Aggregate",
+      "coverageOrdinal": 1,
+      "reductionRule": "R0:sum-over-per-key-cells",
+      "reductionRuleId": "0x625a91dda4cfbfd3f65063e146d5cca3afabcbb2562c31ee91f3a3c90e41535e",
+      "closingSetRoot": "0x55f8e4d0e851438ab3da3cd85ff01cff567243146382abdf529aad4d846c7395",
+      "restatementSetRoot": "0x676a351fe68ba2fe8d67e962a4ae2763fe3caa38f85c7d1a1188843058a58cdc",
+      "closingEvents": [
+        "RewardsFinalized(bytes32,address,uint8,uint256)"
+      ],
+      "restatements": [
+        "RewardAllocated(bytes32,uint8,address,address,uint256)"
+      ],
+      "readSurface": "internal per-settlement aggregate _settlementAllocated; observable via finalizeRewards(bytes32,address,uint8,uint256[])"
+    },
+    {
+      "index": 21,
+      "cellId": "0x348ba5859794bf7c621cce585200c43aea661d7ef93479f3bd4aae9f33b879c8",
+      "module": "FINAL_REWARD_ALLOCATOR",
+      "moduleId": "0xc38c186e3ec7d0a2a7cb5fd99e58482400a66aea0f4764ef2909737aaf4406f3",
+      "coverage": "Derived",
+      "coverageOrdinal": 2,
+      "reductionRule": "R4:finalized-on-rewards-finalized",
+      "reductionRuleId": "0x4957b734edba97bb35b49bf131b1c372d6bd67a4e8c16346c5f114ad7a4d5513",
+      "closingSetRoot": "0x55f8e4d0e851438ab3da3cd85ff01cff567243146382abdf529aad4d846c7395",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "RewardsFinalized(bytes32,address,uint8,uint256)"
+      ],
+      "restatements": [],
+      "readSurface": "finalized(bytes32)"
+    },
+    {
+      "index": 22,
+      "cellId": "0xdab3f3691e200320e06d5a87d4e38f03181a1b4e4d6b56354632a124dad64edf",
+      "module": "FINAL_REWARD_ALLOCATOR",
+      "moduleId": "0xc38c186e3ec7d0a2a7cb5fd99e58482400a66aea0f4764ef2909737aaf4406f3",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x55f8e4d0e851438ab3da3cd85ff01cff567243146382abdf529aad4d846c7395",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "RewardsFinalized(bytes32,address,uint8,uint256)"
+      ],
+      "restatements": [],
+      "readSurface": "finalOutcome(bytes32)"
+    },
+    {
+      "index": 23,
+      "cellId": "0x2b163f8c41952f8d19b71f492fc6cb73171ce86b7039878e6a31269102f847a1",
+      "module": "AGGREGATION",
+      "moduleId": "0x9a0e9d6859a1d35431fd951b6fcc24eb74c07a6ceece84cf977837485693c375",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x2ef2ff34b55011356965814d163e957a0558a314729f369f49f594341f5247ab",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "AggregationFinalized(uint256,bool,uint256,uint256,uint64,uint16)"
+      ],
+      "restatements": [],
+      "readSurface": "outcome(uint256)"
+    },
+    {
+      "index": 24,
+      "cellId": "0x4e00ceab3abc6315e8a4ac08c90873e58658f8565c8415994aaf1dfdee691fb1",
+      "module": "SIGNATURE_NONCES",
+      "moduleId": "0x7db146fe302f6cbd138e299c36d570a0f017ddf70ba1340696552b5cbd63426c",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0xd103fd98781623b0a701be5caf85e5650177952fc1869b7f55703d3c072fec3e",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "NonceConsumed(address,uint256)",
+        "NonceCancelled(address,uint256)"
+      ],
+      "restatements": [],
+      "readSurface": "isNonceUsed(address,uint256)"
+    },
+    {
+      "index": 25,
+      "cellId": "0x3ea964b726efd0124a1428df689ee463ff0d2ff9de999bd1ee8f4c011e1201aa",
+      "module": "EMERGENCY_GATEKEEPER",
+      "moduleId": "0x6256cf2093ab860a9104297e54a55cd5447a5eac626843d9b55348029825deea",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0xffc657f2437b0544d7417b04e8f2b0c2d29075c717598de42060fce75f6517b7",
+      "restatementSetRoot": "0x0c53ac86300325d53306c8685cabd473256f357278d02d4a3f66cf49b14f4e02",
+      "closingEvents": [
+        "ScopePauseUpdated(bytes32,address,bool)"
+      ],
+      "restatements": [
+        "EmergencyPaused(bytes32,address,uint64,uint16)",
+        "EmergencyUnpaused(bytes32,address,uint64,uint16)"
+      ],
+      "readSurface": "locallyPaused(bytes32) and paused(bytes32)"
+    },
+    {
+      "index": 26,
+      "cellId": "0xe97a7fd870a2098e7a24f9b938fbc121c66c9f5c437c08215eb42e1034f70cbb",
+      "module": "EMERGENCY_GATEKEEPER",
+      "moduleId": "0x6256cf2093ab860a9104297e54a55cd5447a5eac626843d9b55348029825deea",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0xf4a15439186b5fe8bfab45aee943221654fd22a58e37e43ec4660fec2645b9d3",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "ScopeMaxPauseLevelSet(bytes32,uint8)"
+      ],
+      "restatements": [],
+      "readSurface": "maxPauseLevel(bytes32)"
+    },
+    {
+      "index": 27,
+      "cellId": "0x3a5cfb49dd2f9b57674f55e22bf39a7ace4a0829d205c2a8f75723ead9e3b2b2",
+      "module": "EMERGENCY_GATEKEEPER",
+      "moduleId": "0x6256cf2093ab860a9104297e54a55cd5447a5eac626843d9b55348029825deea",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0xa8d21012aa496a730dcbfb3c869494fec8783a613227b6f97dfad362f03e5d3f",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "EmergencyControllerRewired(address,address,uint256)"
+      ],
+      "restatements": [],
+      "readSurface": "emergencyController()"
+    },
+    {
+      "index": 28,
+      "cellId": "0x9c08e271e64702b99b61b764e0ef6434e0f621d21a95aa204e0c7a3b6633d7c9",
+      "module": "EMERGENCY_GATEKEEPER",
+      "moduleId": "0x6256cf2093ab860a9104297e54a55cd5447a5eac626843d9b55348029825deea",
+      "coverage": "Direct",
+      "coverageOrdinal": 0,
+      "reductionRule": null,
+      "reductionRuleId": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingSetRoot": "0x09b79a4435a7351cf912c102aa902eb29a281774c16b74173a75d369cd734bcb",
+      "restatementSetRoot": "0xa8d21012aa496a730dcbfb3c869494fec8783a613227b6f97dfad362f03e5d3f",
+      "closingEvents": [
+        "EmergencyRewireDelayUpdated(uint256,uint256)"
+      ],
+      "restatements": [
+        "EmergencyControllerRewired(address,address,uint256)"
+      ],
+      "readSurface": "emergencyRewireDelay()"
+    },
+    {
+      "index": 29,
+      "cellId": "0xf55932d312530d802844a16f6f5eb17702e2e585128bceddd11871e4e3d722c2",
+      "module": "EMERGENCY_GATEKEEPER",
+      "moduleId": "0x6256cf2093ab860a9104297e54a55cd5447a5eac626843d9b55348029825deea",
+      "coverage": "Derived",
+      "coverageOrdinal": 2,
+      "reductionRule": "R5:rewire-timestamp-from-block",
+      "reductionRuleId": "0xcf01d4eba81eee2321d70eb9143680d383ae868dfd1f11d29fa4a7afdf21e89e",
+      "closingSetRoot": "0xa8d21012aa496a730dcbfb3c869494fec8783a613227b6f97dfad362f03e5d3f",
+      "restatementSetRoot": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "closingEvents": [
+        "EmergencyControllerRewired(address,address,uint256)"
+      ],
+      "restatements": [],
+      "readSurface": "lastRewireTimestamp()"
+    }
+  ],
+  "anchor": {
+    "artifact": "EventCompletenessAnchor",
+    "source": "contracts/v2/EventCompletenessAnchor.sol",
+    "deployTimePublicationEvent": "EventCompletenessPublished",
+    "authority": "read-only; no settlement, treasury, or configuration authority is exposed or granted"
+  },
+  "consumerResponsibilities": [
+    "pin catalogueRoot, closingSetRoot, and restatementSetRoot at ingestion; re-derive all three on every replay",
+    "reject a record whose chainId disagrees with the chain being indexed",
+    "apply the total order (blockNumber, transactionIndex, logIndex) and never a weaker order",
+    "apply only a cell's closingEvents; treat restatements as cross-checks and never as sources",
+    "apply the published reductionRuleId for every Aggregate or Derived cell instead of an ad-hoc reduction",
+    "reconcile aggregates from per-key cells and assert conservation before serving reads",
+    "quarantine unknown event signatures; never silently ignore an unlisted emission"
+  ],
+  "nonCanonicalEmissions": {
+    "policy": "these emissions are published by the modules but close no cell; a consumer may ignore them, and every other unlisted emission must be quarantined",
+    "count": 8,
+    "emissions": [
+      {
+        "topic0": "0xdc7046cbc3f181eed7732d2fc2fbeac9baa2ae5d7d92bcded804c4b51e783fb2",
+        "signature": "EvidenceSubmitted(uint256,uint256,address,bytes32,uint64,uint16)",
+        "reason": "Superseded by EvidenceCommitted, which also carries the metadata digest, the contributor nonce, and the schema version"
+      },
+      {
+        "topic0": "0xf544109fc2392e8b72093882ac4313c71727cad06655694b6bb1ea7ddefb1136",
+        "signature": "EvidenceSubmittedV1(uint256,uint256,address,bytes32,uint64,uint16)",
+        "reason": "Superseded by EvidenceCommitted, which also carries the metadata digest, the contributor nonce, and the schema version"
+      },
+      {
+        "topic0": "0x62e78cea01bee320cd4e420270b5ea74000d11b0c9f74754ebdbfc544b05a258",
+        "signature": "Paused(address)",
+        "reason": "OpenZeppelin Pausable base emission; cell 15 is closed by EmergencyPauseActivatedV1 and EmergencyPauseRecoveredV1"
+      },
+      {
+        "topic0": "0x5db9ee0a495bf2e6ff9c91a7834c1ba4fdd244a5e8aa4e537bd38aeae4b073aa",
+        "signature": "Unpaused(address)",
+        "reason": "OpenZeppelin Pausable base emission; cell 15 is closed by EmergencyPauseActivatedV1 and EmergencyPauseRecoveredV1"
+      },
+      {
+        "topic0": "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
+        "signature": "RoleGranted(bytes32,address,address)",
+        "reason": "AccessControl bookkeeping with no read cell of its own"
+      },
+      {
+        "topic0": "0xf6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b",
+        "signature": "RoleRevoked(bytes32,address,address)",
+        "reason": "AccessControl bookkeeping with no read cell of its own"
+      },
+      {
+        "topic0": "0xb318bd59cd7c9534cf22c9a8397a115401b6d3bbedb2455f701b9b13c9d35016",
+        "signature": "ModuleRegistered(bytes32,address,uint16,uint16,uint64,uint16)",
+        "reason": "Registry bookkeeping; module membership is read from the registry"
+      },
+      {
+        "topic0": "0xf4f428badd4ee96acc770bdbb0e99768ef36ab8eedf3c05fb5c26682c73d2da0",
+        "signature": "ModuleRemoved(bytes32,address,uint64,uint16)",
+        "reason": "Registry bookkeeping; module membership is read from the registry"
+      }
+    ]
+  }
+}
